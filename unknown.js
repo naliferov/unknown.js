@@ -1,7 +1,7 @@
 (async() => {
 
     if (typeof window !== 'undefined') {
-        navigator.serviceWorker.register('/sw.js').then(r => console.log('swRegistered')).catch(err => console.log('swNotRegistered', err))
+        navigator.serviceWorker.register('/sw').then(r => console.log('swRegistered')).catch(err => console.log('swNotRegistered', err))
         require.config({ paths: { 'vs': 'http://localhost:8080/node_modules/monaco-editor/min/vs' }});
         window.MonacoEnvironment = {
             getWorkerUrl: (workerId, label) => {
@@ -191,8 +191,8 @@
                 'GET:/': async () => rs.s(await x('ed85ee2d-0f01-4707-8541-b7f46e79192e'), 'text/html'),
                 'GET:/unknown': async () => rs.s(await s.fs.readFile(selfId)),
                 'GET:/x.js': async () => rs.s(await s.fs.readFile(selfId)),
-                'GET:/sw.js': async () => rs.s(await s.fs.readFile('sw.js')),
-                'GET:/pwaManifest': async () => rs.s(await x('ed85ee2d-0f01-4707-8541-b7f46e79192e'), 'application/json'),
+                'GET:/sw': async () => rs.s(await x('ebac14bb-e6b1-4f6c-95ea-017a44a0cc28'), 'text/javascript'),
+                'GET:/pwaManifest': async () => rs.s(await x('fb362554-78e4-44e3-8beb-bf603aa6ef3f'), 'application/json'),
                 'GET:/node': async () => {
                     if (!rq.query.id) { rs.s('id is empty'); return; }
                     const node = g(rq.query.id);
