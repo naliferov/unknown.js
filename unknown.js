@@ -1,6 +1,11 @@
 (async() => {
 
     if (typeof window !== 'undefined') {
+        u = {};
+        u.getJs = async id => {
+            const j = await (await fetch(`/node?id=${id}`)).text();
+            const f = eval(j); return await f();
+        }
         navigator.serviceWorker.register('/sw').then(r => console.log('swRegistered')).catch(err => console.log('swNotRegistered', err))
         require.config({ paths: { 'vs': 'http://localhost:8080/node_modules/monaco-editor/min/vs' }});
         window.MonacoEnvironment = {
@@ -11,24 +16,19 @@
                 )}`;
             }
         };
-        u = {};
-        u.getJs = async (id) => {
-            const j = await (await fetch(`/node?id=${id}`)).text();
-            const f = eval(j); return await f();
-        }
         (new (await u.getJs('d75b3ec3-7f79-4749-b393-757c1836a03e'))).run();
         return;
     }
 
     const s = global;
-    const x = async (id) => {
+    const x = async id => {
         const node = s.st[id]; if (!node) { console.error(`node not found by id [${id}]`); return; }
         try {
             if (!node.__js__) node.__js__ = eval(node.js);
             return node.__js__();
         } catch (e) { console.log(node.js); console.error(e); }
     }
-    const g = (id) => {
+    const g = id => {
         let node = s.st[id]; if (!node) return;
         return new Proxy(node, {
             get(t, k) { return t[k] },
@@ -40,7 +40,8 @@
             }
         });
     }
-    const parseCliArgs = (cliArgs) => {
+    const p = (await import('node:process')).default;
+    const cliArgs = (cliArgs => {
         const args = {};
         for (let i = 0; i < cliArgs.length; i++) {
             if (i < 2) continue; //skip node scriptName args
@@ -52,9 +53,7 @@
             args[k.trim()] = v.trim();
         }
         return args;
-    }
-    const p = (await import('node:process')).default;
-    const cliArgs = parseCliArgs(p.argv);
+    })(p.argv);
 
     const fPath = p.argv[1].split('/');
     const selfId = fPath[fPath.length - 1];
@@ -75,9 +74,7 @@
     if (intervalProc || s.intervalIteration || execNodeId) {
         s.st = await (await fetch(`${parentUrl}/st`)).json();
     } else {
-        let fs = (await import("node:fs")).promises;
-        fs = eval(await fs.readFile('scripts/9f0e6908-4f44-49d1-8c8e-10e1b0128858.js', 'utf8'));
-        fs = new (await fs());
+        let fs = (await import('node:fs')).promises;
         s.st = JSON.parse(await fs.readFile('./state/nodes.json'));
     }
 
@@ -112,9 +109,9 @@
                 }, 2000);
             }
             p.on('unhandledRejection', (e) => {
-                console.error('unhandledRejection main', e);
-                clearInterval(i); i = null;
-                clearTimeout(exit); exit = null;
+                console.error('unhandledRejection interval', e);
+                clearInterval(i); i = 0;
+                clearTimeout(exit); exit = 0;
                 can = 1;
                 setTimeout(runInterval, 500);
             });
@@ -190,7 +187,6 @@
             const m = {
                 'GET:/': async () => rs.s(await x('ed85ee2d-0f01-4707-8541-b7f46e79192e'), 'text/html'),
                 'GET:/unknown': async () => rs.s(await s.fs.readFile(selfId)),
-                'GET:/x.js': async () => rs.s(await s.fs.readFile(selfId)),
                 'GET:/sw': async () => rs.s(await x('ebac14bb-e6b1-4f6c-95ea-017a44a0cc28'), 'text/javascript'),
                 'GET:/pwaManifest': async () => rs.s(await x('fb362554-78e4-44e3-8beb-bf603aa6ef3f'), 'application/json'),
                 'GET:/node': async () => {
@@ -251,7 +247,8 @@
     if (!s.intervalIteration) return;
 
     let conf = [
-        {name: 'tlEditor', nodeId: 'bcc07804-c1bc-472d-a599-e4f5a3174300'},
+        //{name: 'tlEditor', nodeId: 'bcc07804-c1bc-472d-a599-e4f5a3174300'},
+        {name: 'rt', nodeId: '23d3c114-f8a4-4f8f-929b-405da29fa9d0'},
     ];
     for (let i = 0; i < conf.length; i++) {
         const v = conf[i];
@@ -260,7 +257,7 @@
         if (!s[v.name]) {
             const c = `node ${selfId} --port=${procPort} --execNodeId=${v.nodeId}`;
             const os = new s.OS(new s.Logger(`${v.name}: `));
-            os.run(c, false, false, proc => s[v.name] = proc, code => console.log('tlEditor stoped'));
+            os.run(c, false, false, proc => s[v.name] = proc, code => console.log(`${v.name} stoped`));
             s[v.name] = 1;
         }
          try {
