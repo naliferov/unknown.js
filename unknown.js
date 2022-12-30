@@ -120,7 +120,8 @@
         }
 
     } else {
-        //p.on('unhandledRejection', e => log.error(`unhandledRejection:`, e.stack));
+
+        p.on('unhandledRejection', e =>s.log.error(`unhandledRejection:`, e.stack));
         s.localProcs.child = new s.httpClient(childUrl);
 
         let saving;
@@ -154,13 +155,11 @@
             }
         }
         watchScripts();
-        s.log.onMessage((m, o) => {
+        s.logMsgHandler = m => {
             if (!s.connectedRS) return;
-            let d = '';
-            m ? d += JSON.stringify(m) : '';
-            o ? d += JSON.stringify(o) : '';
-            s.connectedRS.write(`data: ${d} \n\n`);
-        });
+            s.connectedRS.write(`data: ${m} \n\n`);
+        }
+        s.log.onMessage(m => s.logMsgHandler(m));
 
         const resolveStatic = async (rq, rs) => {
             const lastPart = rq.pathname.split('/').pop();
@@ -199,7 +198,7 @@
                     s.log.info('SSE connected');
                     s.connectedRS = rs;
                     rs.writeHead(200, {'Content-Type': 'text/event-stream', 'Connection': 'keep-alive', 'Cache-Control': 'no-cache'});
-                    rs.write(`data: {"m": "EventSource connected..."}\n\n`);
+                    rs.write(`data: EventSource connected \n\n`);
                     rq.on('close', () => { s.connectedRS = 0; s.log.info('SSE closed') });
                 },
             }
@@ -210,11 +209,7 @@
 
         const runIntervalProc = async () => {
             const procLogger = new s.Logger('mp: ');
-            procLogger.onMessage((m, o) => {
-                if (!s.connectedRS) return;
-                const d = []; m ? d.push(m):''; o ? d.push(o):'';
-                s.connectedRS.write(`data: ${JSON.stringify(d)} \n\n`);
-            });
+            procLogger.onMessage(m => s.logMsgHandler(m));
             const os = new s.OS(procLogger);
             os.run(`node ${selfId} --port=${port + 1} --intervalProc=1`, false, false, null, (code) => {
                 s.log.error('intervalProc closed......');
@@ -222,6 +217,10 @@
             });
         }
         runIntervalProc();
+
+        // setInterval(() => {
+        //     s.log.info('22okokokok111999');
+        // }, 3000);
     }
 
     if (!s.u) {
