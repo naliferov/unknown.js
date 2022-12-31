@@ -247,7 +247,7 @@
 
     let conf = [
         //{name: 'tlEditor', nodeId: 'bcc07804-c1bc-472d-a599-e4f5a3174300'},
-        {name: 'rt', nodeId: '23d3c114-f8a4-4f8f-929b-405da29fa9d0'},
+        //{name: 'rt', nodeId: '23d3c114-f8a4-4f8f-929b-405da29fa9d0'},
     ];
     for (let i = 0; i < conf.length; i++) {
         const v = conf[i];
