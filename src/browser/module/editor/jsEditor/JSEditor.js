@@ -20,14 +20,13 @@ export default class JSEditor {
         });
         this.editor.getModel().onDidChangeContent(e => {
             const node = this.node;
+            if (node.get('id') === 'unknown.js') return;
 
-            if (node.get('id') !== 'unknown.js') {
-                const js = this.editor.getValue();
-                try { eval(js); window.e('JsEvalResult', {error: 0}); }
-                catch (e) {
-                    window.e('JsEvalResult', {error: e});
-                    return;
-                }
+            const js = this.editor.getValue();
+            try { eval(js); window.e('JsEvalResult', {error: 0}); }
+            catch (e) {
+                window.e('JsEvalResult', {error: e});
+                return;
             }
 
             if (node.get('js') === js) return;
