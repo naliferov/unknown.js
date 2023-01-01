@@ -18,14 +18,16 @@ export default class JSEditor {
             fontSize: '14px',
             theme: 'vs-light',
         });
-        this.editor.getModel().onDidChangeContent((event) => {
+        this.editor.getModel().onDidChangeContent(e => {
             const node = this.node;
-            const js = this.editor.getValue();
 
-            try { eval(js); e('JsEvalResult', {error: 0}); }
-            catch (e) {
-                window.e('JsEvalResult', {error: e});
-                return;
+            if (node.get('id') !== 'unknown.js') {
+                const js = this.editor.getValue();
+                try { eval(js); window.e('JsEvalResult', {error: 0}); }
+                catch (e) {
+                    window.e('JsEvalResult', {error: e});
+                    return;
+                }
             }
 
             if (node.get('js') === js) return;
