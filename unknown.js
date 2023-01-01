@@ -161,6 +161,19 @@
         }
         s.log.onMessage(m => s.logMsgHandler(m));
 
+        const parseRqBody = async (rq) => {
+            return new Promise((resolve, reject) => {
+                let b = [];
+                rq.on('data', chunk => b.push(chunk)); rq.on('error', err => reject(err));
+                rq.on('end', () => {
+                    b = Buffer.concat(b);
+                    if (rq.headers['content-type'] === 'application/json') {
+                        b = JSON.parse(b.toString());
+                    }
+                    resolve(b);
+                });
+            });
+        }
         const resolveStatic = async (rq, rs) => {
             const lastPart = rq.pathname.split('/').pop();
             const split = lastPart.split('.');
@@ -186,6 +199,7 @@
             const m = {
                 'GET:/': async () => rs.s(await x('ed85ee2d-0f01-4707-8541-b7f46e79192e'), 'text/html'),
                 'GET:/unknown': async () => rs.s(await s.fs.readFile(selfId)),
+                'POST:/unknown': async () => await s.fs.writeFile(selfId, (await parseRqBody(rq)).js),
                 'GET:/sw': async () => rs.s(await x('ebac14bb-e6b1-4f6c-95ea-017a44a0cc28'), 'text/javascript'),
                 'GET:/pwaManifest': async () => rs.s(await x('fb362554-78e4-44e3-8beb-bf603aa6ef3f'), 'application/json'),
                 'GET:/node': async () => {

@@ -20,9 +20,10 @@ export default class JSEditor {
         });
         this.editor.getModel().onDidChangeContent(e => {
             const node = this.node;
-            if (node.get('id') === 'unknown.js') return;
-
             const js = this.editor.getValue();
+
+            if (node.get('id') === 'unknown.js') { new HttpClient().post('/unknown', {js}); return; }
+
             try { eval(js); window.e('JsEvalResult', {error: 0}); }
             catch (e) {
                 window.e('JsEvalResult', {error: e});
