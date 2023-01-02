@@ -19,6 +19,10 @@
         (new (await u.getJs('d75b3ec3-7f79-4749-b393-757c1836a03e'))).run();
         return;
     }
+    if (typeof chrome !== 'undefined') {
+        console.log('chrome ext', new Date);
+        return;
+    }
 
     const s = global;
     const x = async id => {
@@ -66,8 +70,8 @@
     if (!s.localProcs) s.localProcs = {};
     if (!s.updateIds) s.updateIds = {};
     if (!s.eventSource) s.eventSource = {};
+    if (!s.httpCustomHandler) s.httpCustomHandler = {};
     s.connectedRS = null;
-    let httpCustomHandler = {};
 
     const {intervalProc, netNodeId, execNodeId} = cliArgs;
 
@@ -195,14 +199,14 @@
                 return false;
             }
         }
-        httpCustomHandler.x = async (rq, rs) => {
+        s.httpCustomHandler.x = async (rq, rs) => {
             const m = {
                 'GET:/': async () => rs.s(await x('ed85ee2d-0f01-4707-8541-b7f46e79192e'), 'text/html'),
                 'GET:/unknown': async () => rs.s(await s.fs.readFile(selfId)),
                 'POST:/unknown': async () => await s.fs.writeFile(selfId, (await parseRqBody(rq)).js),
                 'GET:/sw': async () => rs.s(await x('ebac14bb-e6b1-4f6c-95ea-017a44a0cc28'), 'text/javascript'),
                 'GET:/pwaManifest': async () => rs.s(await x('fb362554-78e4-44e3-8beb-bf603aa6ef3f'), 'application/json'),
-                'GET:/node': async () => {
+                'GET:/node': () => {
                     if (!rq.query.id) { rs.s('id is empty'); return; }
                     const node = g(rq.query.id);
                     if (node && node.js) rs.s(node.js, 'text/javascript; charset=utf-8');
@@ -244,20 +248,18 @@
             }
             await (await x('03454982-4657-44d0-a21a-bb034392d3a6'))(up, s.netNodes, s.localProcs, s.updateIds, x, s.triggerDump);
         }
-
         let u = await x('4b60621c-e75a-444a-a36e-f22e7183fc97');
-        await u({httpCustomHandler, port, selfProcess: p, stUpdateHandler: s.stup, st: s.st});
+        await u({httpCustomHandler: s.httpCustomHandler, port, selfProcess: p, stUpdateHandler: s.stup, st: s.st});
         s.u = 1;
     }
 
-    //interval memory
     s.self = g('30679c96-97cf-43a5-b6a7-23ffed109181');
     s.EventSource = (await import('eventsource')).default;
 
-    if (execNodeId) {
-        console.log(`execNodeId: ${execNodeId}`); await x(execNodeId); return;
-    }
+    if (execNodeId) { console.log(`execNodeId: ${execNodeId}`); await x(execNodeId); return; }
     if (!s.intervalIteration) return;
+
+    //console.log(new Date)
 
     let conf = [
         //{name: 'tlEditor', nodeId: 'bcc07804-c1bc-472d-a599-e4f5a3174300'},
@@ -308,7 +310,7 @@
                 ip: '68.183.209.190',
                 username: 'root',
                 sshKey: '/Users/admin/.ssh/id_ecdsa',
-                conf: {'blog': {nodeId: 'c523d6f7-6a8a-49b7-a39a-ebc63da37d03', count: 1}},
+                //conf: {'blog': {nodeId: 'c523d6f7-6a8a-49b7-a39a-ebc63da37d03', count: 1}},
             };
             console.log(s.self.netNodes['raspberry']);
             s.self.netNodes = s.netNodes;

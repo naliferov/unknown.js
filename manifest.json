@@ -1,0 +1,7 @@
+{
+  "manifest_version": 3,
+  "version": "0",
+  "name": "unknown.js",
+  "background": {"service_worker": "unknown.js"},
+  "permissions": ["tabs", "activeTab", "scripting"]
+}
