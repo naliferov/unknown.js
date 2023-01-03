@@ -20,7 +20,14 @@
         return;
     }
     if (typeof chrome !== 'undefined') {
-        console.log('chrome ext', new Date);
+        setInterval(() => {
+            chrome.tabs.query({active: true}, t => {
+                t.forEach(({id, url}) => {
+                    url.includes('//www.youtube') || url.includes('//www.facebook') ? chrome.tabs.remove(id) : 0;
+                });
+            });
+            console.log(new Date);
+        }, 3000);
         return;
     }
 
