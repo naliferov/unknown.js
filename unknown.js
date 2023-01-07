@@ -109,8 +109,8 @@
                 i = setInterval(async () => {
                     if (!can) return; can = 0;
                     try {
-                        eval(await s.fs.readFile(selfId));
                         exit = setTimeout(() => { console.log('exit process after 30 seconds'); p.exit(0); }, 30000);
+                        eval(await s.fs.readFile(selfId));
                         clearTimeout(exit);
                     } catch (e) {
                         console.error('try catch', e);
@@ -242,10 +242,6 @@
             });
         }
         runIntervalProc();
-
-        // setInterval(() => {
-        //     s.log.info('22okokokok111999');
-        // }, 3000);
     }
 
     if (!s.u) {
@@ -266,8 +262,7 @@
     if (execNodeId) { console.log(`execNodeId: ${execNodeId}`); await x(execNodeId); return; }
     if (!s.intervalIteration) return;
 
-    //console.log(new Date)
-
+    //localProcs
     let conf = [
         //{name: 'tlEditor', nodeId: 'bcc07804-c1bc-472d-a599-e4f5a3174300'},
         //{name: 'rt', nodeId: '23d3c114-f8a4-4f8f-929b-405da29fa9d0'},
@@ -289,134 +284,5 @@
         } catch (e) {
             console.log(`httpRQ to ${v.name} fails`); 
         }
-    }
-
-    if (netNodeId) {
-        const psListTools = await x('fbf561c2-6450-4bd9-adcf-bff77159e66a');
-
-        let connectedSSErs;
-        let logListening = 0;
-        const listenLog = async () => {
-            if (logListening) return;
-
-            const Logger = await x('20cb8896-bdf4-4538-a471-79fb684ffb86');
-            const OS = await x('a4bc6fd6-649f-4709-8a74-d58523418c29');
-            const l = new Logger; l.mute();
-            l.onMessage((msg) => connectedSSErs ? connectedSSErs.write(`data: ${msg} \n\n`) : '');
-            const cmd = `tail -f ${fname}.log`;
-            console.log(cmd);
-            (new OS(l)).run(cmd, false, false, (proc) => {
-            }, (code) => console.log('tail -f stop. code: ', code));
-            logListening = 1;
-        }
-
-        const {NodeSSH} = await import('node-ssh');
-        if (0) {
-            s.self.netNodes['do'] = {
-                id: '7f469200-00ba-467d-bad0-16fc73e97c1c',
-                ip: '68.183.209.190',
-                username: 'root',
-                sshKey: '/Users/admin/.ssh/id_ecdsa',
-                //conf: {'blog': {nodeId: 'c523d6f7-6a8a-49b7-a39a-ebc63da37d03', count: 1}},
-            };
-            console.log(s.self.netNodes['raspberry']);
-            s.self.netNodes = s.netNodes;
-        }
-
-        const createEventSource = (url, netNodeName) => {
-            const x = new s.EventSource(url);
-            x.onmessage = e => console.log(netNodeName + ':', e.data);
-            return x;
-        }
-        const getPsList = async (ssh) => {
-            let psResult = await ssh.execCommand(psListTools.cmd);
-            return psListTools.parse(psResult.stdout);
-        }
-        if (0) {
-            for (let netNodeName in self.netNodes) {
-
-                const netNode = self.netNodes[netNodeName]; //console.log(netNode);
-                const ssh = new NodeSSH;
-                if (netNode.sshKey) {
-                    const sshKey = await fs.readFile(netNode.sshKey);
-                    await ssh.connect({host: netNode.ip, username: netNode.username, privateKey: sshKey});
-                } else {
-                    await ssh.connect({host: netNode.ip, username: netNode.username, password: netNode.password});
-                }
-
-                const files = (await ssh.execCommand('ls')).stdout.split('\n');
-                const procf = `proc_${netNode.id}.js`;
-                //console.log(files);
-
-                let homeDir = netNodeName === 'do' ? '/root' : `/home/${netNode.username}`;
-
-                if (!files.includes('node')) {
-                    console.log('node copying')
-                    await ssh.putFile('./node-linux-x64', `${homeDir}/node`); await ssh.execCommand('chmod +x node');
-                    console.log('node copied');
-                }
-                const putFileToNetNode = async (name) => {
-                    console.log('put master file to node...');
-                    await fs.writeFile(name, await x('4fde3fa3-b9ab-48db-826e-8eda5e845eb8'));
-                    await ssh.putFile(name, `${homeDir}/${name}`);
-                    await fs.rm(name);
-                }
-                const runMasterPs = async () => {
-                    console.log('run master process...');
-                    const port = 8080;
-                    await ssh.execCommand(`./node ${procf} --netNode=${netNodeName} --port=${port} > ${procf}.log 2>&1 &`);
-                    let masterPid;
-                    let psList = await getPsList(ssh);
-                    for (let i = 0; i < psList.length; i++) {
-                        let p = psList[i]; const cmd = p.cmd;
-                        if (cmd.includes(`./node ${procf}`) && cmd.includes(`--port=${port}`)) {
-                            masterPid = p.pid; break;
-                        }
-                    }
-                    netNode['pid'] = masterPid;
-                    s.pids[netNode.id] = masterPid;
-                    self.netNodes = self.netNodes;
-
-                    return 1;
-                }
-                const updateProc = async () => { await putFileToNetNode(procf); await runMasterPs(); }
-
-                const pid = netNode.pid ?? s.pids[netNode.id];
-                let pidFound = 0;
-
-                if (pid) {
-                    let psList = await getPsList(ssh);
-                    for (let i = 0; i < psList.length; i++) {
-                        let p = psList[i];
-                        if (p.pid === pid) { pidFound = 1; break; }
-                    }
-                }
-                if (!pid || !pidFound) {
-                    await updateProc();
-                    ssh.getConnection().end();
-                    continue;
-                }
-                try {
-                    const netNodeHttp = new httpClient(`http://${netNode.ip}:8080`);
-                    //let rs = await netNodeHttp.get('/stopNetNode'); console.log(rs.data);
-                    //let rs = await netNodeHttp.post('/logStr'); console.log(rs.data);
-                    const {data} = await netNodeHttp.get('/stIsReceived');
-                    if (!data.stIsReceived) {
-                        console.log(`send data to node: [${netNodeName}]`);
-                        await netNodeHttp.post('/st', {st});
-                    }
-                    if (!s.eventSource[netNodeName]) {
-                        let es = await createEventSource(`http://${netNode.ip}:8080/procLog`, netNodeName);
-                        s.eventSource[netNodeName] = es;
-                    }
-
-                } catch (e) { console.log('http rq to netNode fails', e); }
-                ssh.getConnection().end();
-            }
-        }
-    } else {
-         conf = [{ip: '123.23.2.2'}]
-        //prepare neccessary nodes;
-        //and copy node to netNode
     }
 })();
