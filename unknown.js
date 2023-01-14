@@ -1,11 +1,16 @@
 (async() => {
 
+    if (!globalThis.s) globalThis.s = {};
+    globalThis.u = {};
+    let x, f, g;
+
     if (typeof window !== 'undefined') {
-        u = {};
-        u.getJs = async id => {
-            const j = await (await fetch(`/node?id=${id}`)).text();
-            const f = eval(j); return await f();
+        s.getJs = async id => {
+            const jjjj = await (await fetch(`/node?id=${id}`)).text();
+            return await eval(jjjj)();
         }
+        f = s.getJs;
+
         navigator.serviceWorker.register('/sw').then(r => console.log('swRegistered')).catch(err => console.log('swNotRegistered', err))
         require.config({ paths: { 'vs': 'http://localhost:8080/node_modules/monaco-editor/min/vs' }});
         window.MonacoEnvironment = {
@@ -16,7 +21,7 @@
                 )}`;
             }
         };
-        (new (await u.getJs('d75b3ec3-7f79-4749-b393-757c1836a03e'))).run();
+        (new (await s.getJs('d75b3ec3-7f79-4749-b393-757c1836a03e'))).run();
         return;
     }
     if (typeof chrome !== 'undefined') {
@@ -30,16 +35,16 @@
         }, 3000);
         return;
     }
-
-    const s = global;
-    const x = async id => {
+    x = async id => {
         const node = s.st[id]; if (!node) { console.error(`node not found by id [${id}]`); return; }
         try {
             if (!node.__js__) node.__js__ = eval(node.js);
             return node.__js__();
         } catch (e) { console.log(node.js); console.error(e); }
     }
-    const g = id => {
+    f = () => {};
+    g = id => {
+
         let node = s.st[id]; if (!node) return;
         return new Proxy(node, {
             get(t, k) { return t[k] },
@@ -51,6 +56,7 @@
             }
         });
     }
+
     const p = (await import('node:process')).default;
     const cliArgs = (cliArgs => {
         const args = {};
@@ -68,7 +74,6 @@
 
     const fPath = p.argv[1].split('/');
     const selfId = fPath[fPath.length - 1];
-
     const port = parseInt(cliArgs.port ?? '8080', 10); if (!port) { console.log('cliArgs.port is not defined'); return; }
     const parentUrl = `http://127.0.0.1:${port - 1}`;
     const childUrl = `http://127.0.0.1:${port + 1}`;
@@ -76,8 +81,9 @@
     if (!s.netNodes) s.netNodes = {};
     if (!s.localProcs) s.localProcs = {};
     if (!s.updateIds) s.updateIds = {};
-    if (!s.eventSource) s.eventSource = {};
     if (!s.httpCustomHandler) s.httpCustomHandler = {};
+    if (!s.eventSource) s.eventSource = {};
+    if (!s.once) s.once = {}; const once = id => s.once[id] ? 0 : s.once[id] = 1;
     s.connectedRS = null;
 
     const {intervalProc, netNodeId, execNodeId} = cliArgs;
@@ -89,12 +95,14 @@
         s.st = JSON.parse(await fs.readFile('./state/nodes.json'));
     }
 
+    s.self = g('30679c96-97cf-43a5-b6a7-23ffed109181');
     s.Logger = await x('20cb8896-bdf4-4538-a471-79fb684ffb86');
     s.log = new s.Logger;
     s.fs = new (await x('9f0e6908-4f44-49d1-8c8e-10e1b0128858'))(s.log);
     s.f = await x('dc9436fd-bec3-4016-a2f6-f0300f70a905');
     s.OS = await x('a4bc6fd6-649f-4709-8a74-d58523418c29');
     s.httpClient = await x('94a91287-7149-4bbd-9fef-1f1d68f65d70');
+    s.EventSource = (await import('eventsource')).default;
 
     if (intervalProc || s.intervalIteration || execNodeId) {
         if (!s.localProcs.parent) s.localProcs.parent = new s.httpClient(parentUrl);
@@ -120,7 +128,7 @@
                 }, 2000);
             }
             p.on('unhandledRejection', (e) => {
-                console.error('unhandledRejection interval', e);
+                console.error('unhandledRejection interval err', e);
                 clearInterval(i); i = 0;
                 clearTimeout(exit); exit = 0;
                 can = 1;
@@ -168,7 +176,9 @@
         watchScripts();
         s.logMsgHandler = m => {
             if (!s.connectedRS) return;
-            s.connectedRS.write(`data: ${m} \n\n`);
+
+            const msg = JSON.stringify({m});
+            s.connectedRS.write(`data: ${msg} \n\n`);
         }
         s.log.onMessage(m => s.logMsgHandler(m));
 
@@ -224,7 +234,7 @@
                     s.connectedRS = rs;
                     rs.writeHead(200, {'Content-Type': 'text/event-stream', 'Connection': 'keep-alive', 'Cache-Control': 'no-cache'});
                     rs.write(`data: EventSource connected \n\n`);
-                    rq.on('close', () => { s.connectedRS = 0; s.log.info('SSE closed') });
+                    rq.on('close', () => { s.connectedRS = 0; s.log.info('SSE closed'); });
                 },
             }
             if (await resolveStatic(rq, rs)) return;
@@ -233,6 +243,7 @@
         }
 
         const runIntervalProc = async () => {
+
             const procLogger = new s.Logger('mp: ');
             procLogger.onMessage(m => s.logMsgHandler(m));
             const os = new s.OS(procLogger);
@@ -246,7 +257,7 @@
 
     if (!s.u) {
         s.stup = async (up) => {
-            if (!s.intervalIteration && up.m === '/k' && up.k === 'js' && up.v) {
+            if (!s.intervalIteration && !execNodeId && up.m === '/k' && up.k === 'js' && up.v) {
                 await s.fs.writeFile(`scripts/${up.nodeId}.js`, up.v);
             }
             await (await x('03454982-4657-44d0-a21a-bb034392d3a6'))(up, s.netNodes, s.localProcs, s.updateIds, x, s.triggerDump);
@@ -255,12 +266,10 @@
         await u({httpCustomHandler: s.httpCustomHandler, port, selfProcess: p, stUpdateHandler: s.stup, st: s.st});
         s.u = 1;
     }
-
-    s.self = g('30679c96-97cf-43a5-b6a7-23ffed109181');
-    s.EventSource = (await import('eventsource')).default;
-
     if (execNodeId) { console.log(`execNodeId: ${execNodeId}`); await x(execNodeId); return; }
     if (!s.intervalIteration) return;
+
+    //if (once('1')) await x('a28c97ba-edc0-4670-8902-cd40eca8d451');
 
     //localProcs
     let conf = [
@@ -285,4 +294,7 @@
             console.log(`httpRQ to ${v.name} fails`); 
         }
     }
+
+    //const netNodesLogic = await x('f877c6d7-e52a-48fb-b6f7-cf53c9181cc1');
+    //console.log(netNodesLogic);
 })();
