@@ -1,16 +1,12 @@
 (async() => {
-
-    if (!globalThis.s) globalThis.s = {};
-    globalThis.u = {};
-    let x, f, g;
+    let gl = globalThis;
+    if (!gl.s) gl.s = {};
 
     if (typeof window !== 'undefined') {
-        s.getJs = async id => {
-            const jjjj = await (await fetch(`/node?id=${id}`)).text();
-            return await eval(jjjj)();
-        }
-        f = s.getJs;
-
+        gl.f = async id => {
+            const j = await (await fetch(`/node?id=${id}`)).text(); //todo make pipe
+            return await eval(j)();
+        };
         navigator.serviceWorker.register('/sw').then(r => console.log('swRegistered')).catch(err => console.log('swNotRegistered', err))
         require.config({ paths: { 'vs': 'http://localhost:8080/node_modules/monaco-editor/min/vs' }});
         window.MonacoEnvironment = {
@@ -21,7 +17,7 @@
                 )}`;
             }
         };
-        (new (await s.getJs('d75b3ec3-7f79-4749-b393-757c1836a03e'))).run();
+        (new (await f('d75b3ec3-7f79-4749-b393-757c1836a03e'))).run();
         return;
     }
     if (typeof chrome !== 'undefined') {
@@ -35,16 +31,15 @@
         }, 3000);
         return;
     }
-    x = async id => {
+
+    gl.f = async id => {
         const node = s.st[id]; if (!node) { console.error(`node not found by id [${id}]`); return; }
         try {
             if (!node.__js__) node.__js__ = eval(node.js);
             return node.__js__();
         } catch (e) { console.log(node.js); console.error(e); }
-    }
-    f = () => {};
-    g = id => {
-
+    };
+    gl.g = id => {
         let node = s.st[id]; if (!node) return;
         return new Proxy(node, {
             get(t, k) { return t[k] },
@@ -96,12 +91,12 @@
     }
 
     s.self = g('30679c96-97cf-43a5-b6a7-23ffed109181');
-    s.Logger = await x('20cb8896-bdf4-4538-a471-79fb684ffb86');
+    s.Logger = await f('20cb8896-bdf4-4538-a471-79fb684ffb86');
     s.log = new s.Logger;
-    s.fs = new (await x('9f0e6908-4f44-49d1-8c8e-10e1b0128858'))(s.log);
-    s.f = await x('dc9436fd-bec3-4016-a2f6-f0300f70a905');
-    s.OS = await x('a4bc6fd6-649f-4709-8a74-d58523418c29');
-    s.httpClient = await x('94a91287-7149-4bbd-9fef-1f1d68f65d70');
+    s.fs = new (await f('9f0e6908-4f44-49d1-8c8e-10e1b0128858'))(s.log);
+    s.f = await f('dc9436fd-bec3-4016-a2f6-f0300f70a905');
+    s.OS = await f('a4bc6fd6-649f-4709-8a74-d58523418c29');
+    s.httpClient = await f('94a91287-7149-4bbd-9fef-1f1d68f65d70');
     s.EventSource = (await import('eventsource')).default;
 
     if (intervalProc || s.intervalIteration || execNodeId) {
@@ -218,11 +213,11 @@
         }
         s.httpCustomHandler.x = async (rq, rs) => {
             const m = {
-                'GET:/': async () => rs.s(await x('ed85ee2d-0f01-4707-8541-b7f46e79192e'), 'text/html'),
+                'GET:/': async () => rs.s(await f('ed85ee2d-0f01-4707-8541-b7f46e79192e'), 'text/html'),
                 'GET:/unknown': async () => rs.s(await s.fs.readFile(selfId)),
                 'POST:/unknown': async () => await s.fs.writeFile(selfId, (await parseRqBody(rq)).js),
-                'GET:/sw': async () => rs.s(await x('ebac14bb-e6b1-4f6c-95ea-017a44a0cc28'), 'text/javascript'),
-                'GET:/pwaManifest': async () => rs.s(await x('fb362554-78e4-44e3-8beb-bf603aa6ef3f'), 'application/json'),
+                'GET:/sw': async () => rs.s(await f('ebac14bb-e6b1-4f6c-95ea-017a44a0cc28'), 'text/javascript'),
+                'GET:/pwaManifest': async () => rs.s(await f('fb362554-78e4-44e3-8beb-bf603aa6ef3f'), 'application/json'),
                 'GET:/node': () => {
                     if (!rq.query.id) { rs.s('id is empty'); return; }
                     const node = g(rq.query.id);
@@ -256,20 +251,21 @@
     }
 
     if (!s.u) {
-        s.stup = async (up) => {
+        s.u = 1;
+        s.stup = async up => {
             if (!s.intervalIteration && !execNodeId && up.m === '/k' && up.k === 'js' && up.v) {
                 await s.fs.writeFile(`scripts/${up.nodeId}.js`, up.v);
             }
-            await (await x('03454982-4657-44d0-a21a-bb034392d3a6'))(up, s.netNodes, s.localProcs, s.updateIds, x, s.triggerDump);
+            await (await f('03454982-4657-44d0-a21a-bb034392d3a6'))(up, s.netNodes, s.localProcs, s.updateIds, f, s.triggerDump);
         }
-        let u = await x('4b60621c-e75a-444a-a36e-f22e7183fc97');
+        let u = await f('4b60621c-e75a-444a-a36e-f22e7183fc97');
         await u({httpCustomHandler: s.httpCustomHandler, port, selfProcess: p, stUpdateHandler: s.stup, st: s.st});
-        s.u = 1;
     }
-    if (execNodeId) { console.log(`execNodeId: ${execNodeId}`); await x(execNodeId); return; }
+    if (execNodeId) { console.log(`execNodeId: ${execNodeId}`); await f(execNodeId); return; }
     if (!s.intervalIteration) return;
 
-    //if (once('1')) await x('a28c97ba-edc0-4670-8902-cd40eca8d451');
+    //console.log(new Date);
+    //if (once('1')) await f('a28c97ba-edc0-4670-8902-cd40eca8d451');
 
     //localProcs
     let conf = [
@@ -295,6 +291,6 @@
         }
     }
 
-    //const netNodesLogic = await x('f877c6d7-e52a-48fb-b6f7-cf53c9181cc1');
+    //const netNodesLogic = await f('f877c6d7-e52a-48fb-b6f7-cf53c9181cc1');
     //console.log(netNodesLogic);
 })();

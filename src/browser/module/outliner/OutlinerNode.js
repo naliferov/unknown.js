@@ -7,23 +7,23 @@ export default class OutlinerNode {
 
         this.domId = uuid();
         window.outlinerPool.set(this.domId, this);
-        this.v = new u.V({id: this.domId, class: ['node']});
+        this.v = new s.V({id: this.domId, class: ['node']});
 
         if (!isRoot) {
-            const container = new u.V({class: ['nodeContainer', 'flex']});
+            const container = new s.V({class: ['nodeContainer', 'flex']});
             e('>', [container, this.v]);
 
-            this.dataV = new u.V({class: 'dataUnit', txt: node.get('name')});
+            this.dataV = new s.V({class: 'dataUnit', txt: node.get('name')});
             this.dataV.setAttr('outliner_node_id', this.domId);
             this.dataV.toggleEdit();
             e('>', [this.dataV, container]);
 
-            const id = new u.V({txt: 'ID', style: {marginLeft: '10px'}});
+            const id = new s.V({txt: 'ID', style: {marginLeft: '10px'}});
             id.on('click', () => navigator.clipboard.writeText(node.get('id')));
             e('>', [id, container]);
         }
 
-        this.nodesV = new u.V({class: ['subNodes', 'shift']});
+        this.nodesV = new s.V({class: ['subNodes', 'shift']});
         e('>', [this.nodesV, this.v]);
     }
     updateNameInContextNode() { this.getContextNode().set('name', this.dataV.getTxt().trim()) }

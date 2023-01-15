@@ -6,11 +6,11 @@ export default class TabManager {
 
     constructor(nodes, localState) {
 
-        this.v = new u.V({class: 'tabManager'});
+        this.v = new s.V({class: 'tabManager'});
 
-        this.tabsNamesBlock = new u.V({class: 'tabs'});
+        this.tabsNamesBlock = new s.V({class: 'tabs'});
         e('>', [this.tabsNamesBlock, this.v]);
-        this.tabsContentBlock = new u.V({class: 'tabsContent'});
+        this.tabsContentBlock = new s.V({class: 'tabsContent'});
         e('>', [this.tabsContentBlock, this.v]);
 
         this.nodes = nodes;

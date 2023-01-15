@@ -1,12 +1,12 @@
 export default class TabName {
 
     constructor(name, contextNode) {
-        this.v = new u.V({class: 'tab'});
+        this.v = new s.V({class: 'tab'});
 
-        this.name = new u.V({class: 'tabName', txt: name});
+        this.name = new s.V({class: 'tabName', txt: name});
         e('>', [this.name, this.v]);
 
-        this.closeBtn = new u.V({class: 'tabCloseBtn'});
+        this.closeBtn = new s.V({class: 'tabCloseBtn'});
         e('>', [this.closeBtn, this.v]);
 
         this.contextNodeId = contextNode.get('id');

@@ -4,7 +4,7 @@ export default class JSEditor {
 
     constructor(node) {
         this.node = node;
-        this.v = new u.V({ class:['jsEditor'], id: this.getEditorDOMId()});
+        this.v = new s.V({ class:['jsEditor'], id: this.getEditorDOMId()});
         this.isEditorInitiated = false;
     }
     getEditorDOMId() { return 'editor_' + this.node.get('id'); }

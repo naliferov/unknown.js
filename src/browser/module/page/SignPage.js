@@ -16,21 +16,21 @@ export default class SignPage {
         const sign = new V({class: 'signBlock'});
         e('>', [sign, signContainer]);
 
-        e('>', [new u.V({txt: formName}), sign]);
-        e('>', [new u.V({tagName: 'br'}), sign]);
+        e('>', [new s.V({txt: formName}), sign]);
+        e('>', [new s.V({tagName: 'br'}), sign]);
 
-        e('>', [new u.V({name: 'Email'}), sign]);
+        e('>', [new s.V({name: 'Email'}), sign]);
 
-        const email = new u.V({tagName: 'input', class: 'emailInput'});
+        const email = new s.V({tagName: 'input', class: 'emailInput'});
         e('>', [email, sign]);
 
-        e('>', [new u.V({name: 'Password'}), sign]);
+        e('>', [new s.V({name: 'Password'}), sign]);
 
-        const password = new u.V({tagName: 'input', class: ['emailInput']});
+        const password = new s.V({tagName: 'input', class: ['emailInput']});
         password.setAttr('type', 'password');
         e('>', [password, sign]);
 
-        e('>', [new u.V({tagName: 'br'}), sign]); e('>', [new u.V({tagName: 'br'}), sign]);
+        e('>', [new s.V({tagName: 'br'}), sign]); e('>', [new s.V({tagName: 'br'}), sign]);
 
         const btn = new V({tagName: 'button', txt: formName});
         e('>', [btn, sign]);
