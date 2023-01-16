@@ -7,13 +7,14 @@
             const j = await (await fetch(`/node?id=${id}`)).text(); //todo make pipe
             return await eval(j)();
         };
+        const baseUrl = document.location.protocol + '//' + document.location.host;
         navigator.serviceWorker.register('/sw').then(r => console.log('swRegistered')).catch(err => console.log('swNotRegistered', err))
-        require.config({ paths: { 'vs': 'http://localhost:8080/node_modules/monaco-editor/min/vs' }});
+        require.config({ paths: { 'vs': baseUrl + '/node_modules/monaco-editor/min/vs' }});
         window.MonacoEnvironment = {
             getWorkerUrl: (workerId, label) => {
                 return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-                    self.MonacoEnvironment = { baseUrl: 'http://localhost:8080/node_modules/monaco-editor/min/' };
-                    importScripts('http://localhost:8080/node_modules/monaco-editor/min/vs/base/worker/workerMain.js');`
+                    self.MonacoEnvironment = { baseUrl: '${baseUrl}/node_modules/monaco-editor/min/' };
+                    importScripts('${baseUrl}/node_modules/monaco-editor/min/vs/base/worker/workerMain.js');`
                 )}`;
             }
         };
@@ -74,7 +75,7 @@
     const childUrl = `http://127.0.0.1:${port + 1}`;
 
     if (!s.netNodes) s.netNodes = {};
-    if (!s.localProcs) s.localProcs = {};
+    if (!s.netProcs) s.netProcs = {};
     if (!s.updateIds) s.updateIds = {};
     if (!s.httpCustomHandler) s.httpCustomHandler = {};
     if (!s.eventSource) s.eventSource = {};
@@ -100,7 +101,7 @@
     s.EventSource = (await import('eventsource')).default;
 
     if (intervalProc || s.intervalIteration || execNodeId) {
-        if (!s.localProcs.parent) s.localProcs.parent = new s.httpClient(parentUrl);
+        if (!s.netProcs.parent) s.netProcs.parent = new s.httpClient(parentUrl);
 
         if (intervalProc && !s.intervalIteration) {
             s.intervalIteration = 1;
@@ -136,7 +137,7 @@
     } else {
 
         p.on('unhandledRejection', e =>s.log.error(`unhandledRejection:`, e.stack));
-        s.localProcs.child = new s.httpClient(childUrl);
+        s.netProcs.child = new s.httpClient(childUrl);
 
         let saving;
         s.triggerDump = () => {
@@ -256,7 +257,7 @@
             if (!s.intervalIteration && !execNodeId && up.m === '/k' && up.k === 'js' && up.v) {
                 await s.fs.writeFile(`scripts/${up.nodeId}.js`, up.v);
             }
-            await (await f('03454982-4657-44d0-a21a-bb034392d3a6'))(up, s.netNodes, s.localProcs, s.updateIds, f, s.triggerDump);
+            await (await f('03454982-4657-44d0-a21a-bb034392d3a6'))(up, s.updateIds, s.netNodes, s.netProcs, f, s.triggerDump);
         }
         let u = await f('4b60621c-e75a-444a-a36e-f22e7183fc97');
         await u({httpCustomHandler: s.httpCustomHandler, port, selfProcess: p, stUpdateHandler: s.stup, st: s.st});
@@ -266,30 +267,7 @@
 
     //console.log(new Date);
     //if (once('1')) await f('a28c97ba-edc0-4670-8902-cd40eca8d451');
-
-    //localProcs
-    let conf = [
-        //{name: 'tlEditor', nodeId: 'bcc07804-c1bc-472d-a599-e4f5a3174300'},
-        //{name: 'rt', nodeId: '23d3c114-f8a4-4f8f-929b-405da29fa9d0'},
-    ];
-    for (let i = 0; i < conf.length; i++) {
-        const v = conf[i];
-
-        const procPort = port + 1;
-        if (!s[v.name]) {
-            const c = `node ${selfId} --port=${procPort} --execNodeId=${v.nodeId}`;
-            const os = new s.OS(new s.Logger(`${v.name}: `));
-            os.run(c, false, false, proc => s[v.name] = proc, code => console.log(`${v.name} stoped`));
-            s[v.name] = 1;
-        }
-         try {
-             if (!s.localProcs[v.name]) s.localProcs[v.name] = new s.httpClient(`http://127.0.0.1:${procPort}`);
-
-             const r = await s.localProcs[v.name].get('/ping'); //console.log('http to ' + v.name, r.data);
-        } catch (e) {
-            console.log(`httpRQ to ${v.name} fails`); 
-        }
-    }
+    //console.log(s.st['dc9436fd-bec3-4016-a2f6-f0300f70a905']);
 
     //const netNodesLogic = await f('f877c6d7-e52a-48fb-b6f7-cf53c9181cc1');
     //console.log(netNodesLogic);
