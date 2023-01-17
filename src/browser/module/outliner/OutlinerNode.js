@@ -32,17 +32,13 @@ export default class OutlinerNode {
     isInRoot() { return this.getParent().isRoot }
     markAsRootNode() { this.isRoot = true }
     getParent() { return window.outlinerPool.get(this.v.parentDOM().parentNode.id) }
-
     next() {
         const next = this.v.getDOM().nextSibling;
-        if (!next) return;
-        return window.outlinerPool.get(next.id);
+        return next ? window.outlinerPool.get(next.id) : null;
     }
-
     prev() {
         const previous = this.v.getDOM().previousSibling;
-        if (!previous) return;
-        return window.outlinerPool.get(previous.id);
+        return previous ? window.outlinerPool.get(previous.id) : null;
     }
     getContextNode() { return this.node }
     getV() { return this.v }

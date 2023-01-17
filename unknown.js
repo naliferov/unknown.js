@@ -1,6 +1,6 @@
 (async() => {
     let gl = globalThis;
-    if (!gl.s) gl.s = {};
+    gl.s ??= {};
 
     s.pA = async (...args) => {
         let r;
@@ -87,7 +87,7 @@
     if (!s.once) s.once = {}; const once = id => s.once[id] ? 0 : s.once[id] = 1;
     s.connectedRS = null;
 
-    const {intervalProc, execNodeId} = s.p.cliArgs;
+    const {intervalProc, execNodeId, isRemoteNode} = s.p.cliArgs;
     const main = !intervalProc && !s.intervalIteration && !execNodeId;
     if (main) {
         let fs = (await import('node:fs')).promises;
@@ -203,6 +203,10 @@
                     rq.on('close', () => { s.connectedRS = 0; s.log.info('SSE closed'); });
                 },
             }
+            // if (!isRemoteNode) {
+            //
+            // }
+
             if (await resolveStatic(rq, rs)) return;
             if (m[rq.mp]) { await m[rq.mp](); return; }
             rs.s('page not found');
