@@ -79,24 +79,24 @@
     const parentUrl = `http://127.0.0.1:${port - 1}`;
     const childUrl = `http://127.0.0.1:${port + 1}`;
 
-    if (!s.netNodes) s.netNodes = {};
-    if (!s.netProcs) s.netProcs = {};
-    if (!s.updateIds) s.updateIds = {};
-    if (!s.httpHandler) s.httpHandler = {};
-    if (!s.eventSource) s.eventSource = {};
-    if (!s.once) s.once = {}; const once = id => s.once[id] ? 0 : s.once[id] = 1;
+    s.netNodes ??= {};
+    s.netProcs ??= {};
+    s.updateIds ??= {};
+    s.httpHandler ??= {};
+    s.eventSource ??= {};
+    s.once ??= {};
+    const once = id => s.once[id] ? 0 : s.once[id] = 1;
     s.connectedRS = null;
 
     const {intervalProc, execNodeId, isRemoteNode} = s.p.cliArgs;
     const main = !intervalProc && !s.intervalIteration && !execNodeId;
-    if (main) {
-        let fs = (await import('node:fs')).promises;
-        s.st = JSON.parse(await fs.readFile('./state/nodes.json'));
+
+    if (main) {//todo modify pipe
+        s.st = await s.pA('import("node:fs")', 'r.promises', 'r.readFile("./state/nodes.json")', 'JSON.parse(r)');
     } else {
         s.st = await (await fetch(`${parentUrl}/st`)).json();
     }
 
-    s.self = g('30679c96-97cf-43a5-b6a7-23ffed109181');
     s.Logger = await f('20cb8896-bdf4-4538-a471-79fb684ffb86');
     s.log = new s.Logger;
     s.fs = new (await f('9f0e6908-4f44-49d1-8c8e-10e1b0128858'))(s.log);
@@ -123,8 +123,6 @@
             for await (const e of watch) {
                 if (e.eventType !== 'change') continue;
                 const nodeId = e.filename.slice(0, -3);
-                if (!s.st[nodeId]) continue;
-
                 const node = s.st[nodeId];
                 if (!node) continue;
                 console.log('updateFromFS', node.id, node.name);
@@ -186,7 +184,6 @@
             const m = {
                 'GET:/': async () => rs.s(await f('ed85ee2d-0f01-4707-8541-b7f46e79192e'), 'text/html'),
                 'GET:/unknown': async () => rs.s(await s.fs.readFile(selfId)),
-                'POST:/unknown': async () => await s.fs.writeFile(selfId, (await parseRqBody(rq)).js),
                 'GET:/sw': async () => rs.s(await f('ebac14bb-e6b1-4f6c-95ea-017a44a0cc28'), 'text/javascript'),
                 'GET:/pwaManifest': async () => rs.s(await f('fb362554-78e4-44e3-8beb-bf603aa6ef3f'), 'application/json'),
                 'GET:/node': () => {
@@ -203,9 +200,7 @@
                     rq.on('close', () => { s.connectedRS = 0; s.log.info('SSE closed'); });
                 },
             }
-            // if (!isRemoteNode) {
-            //
-            // }
+            if (!isRemoteNode) m['POST:/unknown'] = async () => await s.fs.writeFile(selfId, (await parseRqBody(rq)).js);
 
             if (await resolveStatic(rq, rs)) return;
             if (m[rq.mp]) { await m[rq.mp](); return; }
