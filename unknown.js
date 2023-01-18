@@ -1,6 +1,6 @@
-(async() => {
-    let gl = globalThis;
-    gl.s ??= {};
+globalThis.s ??= {};
+globalThis.main = async() => {
+    let f, g;
 
     s.pA = async (...args) => {
         let r;
@@ -9,7 +9,7 @@
     }
 
     if (typeof window !== 'undefined') {
-        gl.f = async id => s.pA(`fetch('/node?id=${id}')`, 'r.text()', 'eval(r)()');
+        f = async id => s.pA(`fetch('/node?id=${id}')`, 'r.text()', 'eval(r)()');
 
         const baseUrl = document.location.protocol + '//' + document.location.host;
         navigator.serviceWorker.register('/sw').then(r => console.log('swRegistered')).catch(err => console.log('swNotRegistered', err))
@@ -37,15 +37,14 @@
         }, 3000);
         return;
     }
-
-    gl.f = async id => {
-        const node = s.st[id]; if (!node) { console.error(`node not found by id [${id}]`); return; }
+    f = async id => {
+        const n = s.st[id]; if (!n) { console.error(`node not found by id [${id}]`); return; }
         try {
-            if (!node.__js__) node.__js__ = eval(node.js);
-            return node.__js__();
+            if (!n.__js__) n.__js__ = eval(n.js);
+            return n.__js__();
         } catch (e) { console.log(node.js); console.error(e); }
     };
-    gl.g = id => {
+    g = id => {
         let node = s.st[id]; if (!node) return;
         return new Proxy(node, {
             get(t, k) { return t[k] },
@@ -72,9 +71,7 @@
         }
         return args;
     })(s.p.argv);
-
-    const fPath = s.p.argv[1].split('/');
-    const selfId = fPath[fPath.length - 1];
+    const selfId = s.p.argv[1].split('/').at(-1);
     const port = parseInt(s.p.cliArgs.port ?? '8080', 10); if (!port) { console.log('cliArgs.port is not defined'); return; }
     const parentUrl = `http://127.0.0.1:${port - 1}`;
     const childUrl = `http://127.0.0.1:${port + 1}`;
@@ -85,13 +82,13 @@
     s.httpHandler ??= {};
     s.eventSource ??= {};
     s.once ??= {};
-    const once = id => s.once[id] ? 0 : s.once[id] = 1;
+    //const once = id => s.once[id] ? 0 : s.once[id] = 1;
     s.connectedRS = null;
 
-    const {intervalProc, execNodeId, isRemoteNode} = s.p.cliArgs;
-    const main = !intervalProc && !s.intervalIteration && !execNodeId;
+    const {intervalProc, netNodeId, procNodeId} = s.p.cliArgs;
 
-    if (main) {//todo modify pipe
+    const main = netNodeId === 'main';
+    if (main) {
         s.st = await s.pA('import("node:fs")', 'r.promises', 'r.readFile("./state/nodes.json")', 'JSON.parse(r)');
     } else {
         s.st = await (await fetch(`${parentUrl}/st`)).json();
@@ -108,6 +105,17 @@
     if (main) {
         s.p.on('unhandledRejection', e => s.log.error(`unhandledRejection:`, e.stack));
         s.netProcs.child = new s.httpClient(childUrl);
+        s.p.stdin.on('readable', () => {
+            let ch;
+            let cmd = '';
+            while (null !== (ch = s.p.stdin.read())) cmd += ch.toString();
+            cmd = cmd.trim();
+            if (cmd === 'servOn') s.server.listen(port, () => console.log(`httpServer start port: ${port}`));
+            if (cmd === 'servOff') {
+                s.server.close(() => console.log('httpServer stop'));
+                s.server.closeAllConnections();
+            }
+        });
 
         let saving;
         s.triggerDump = () => {
@@ -200,7 +208,7 @@
                     rq.on('close', () => { s.connectedRS = 0; s.log.info('SSE closed'); });
                 },
             }
-            if (!isRemoteNode) m['POST:/unknown'] = async () => await s.fs.writeFile(selfId, (await parseRqBody(rq)).js);
+            if (netNodeId === 'main') m['POST:/unknown'] = async () => await s.fs.writeFile(selfId, (await parseRqBody(rq)).js);
 
             if (await resolveStatic(rq, rs)) return;
             if (m[rq.mp]) { await m[rq.mp](); return; }
@@ -208,7 +216,6 @@
         }
 
         const runIntervalProc = async () => {
-
             const procLogger = new s.Logger('mp: ');
             procLogger.onMessage(m => s.logMsgHandler(m));
             const os = new s.OS(procLogger);
@@ -217,57 +224,61 @@
                 setTimeout(runIntervalProc, 2000);
             });
         }
-        runIntervalProc();
+        //runIntervalProc();
 
     } else {
-        if (!s.netProcs.parent) s.netProcs.parent = new s.httpClient(parentUrl);
-
+        if (!netNodeId && !s.netProcs.parent) s.netProcs.parent = new s.httpClient(parentUrl);
         if (intervalProc && !s.intervalIteration) {
             s.intervalIteration = 1;
-            let can = 1, i, exit;
+            let can = 1, i;
 
             const runInterval = () => {
                 if (i) return;
                 i = setInterval(async () => {
                     if (!can) return; can = 0;
-                    exit = setTimeout(() => { console.log('exit process after 30 sec'); s.p.exit(0); }, 30000);
-                    try {
-                        eval(await s.fs.readFile(selfId));
-                        clearTimeout(exit);
-                    } catch (e) {
-                        console.error('try catch', e);
-                        clearTimeout(exit);
-                    }
+                    try { eval(await s.fs.readFile(selfId)); }
+                    catch (e) { console.error('try catch', e); }
                     can = 1;
                 }, 2000);
             }
             s.p.on('unhandledRejection', e => {
                 console.error('unhandledRejection interval err', e);
                 clearInterval(i); i = 0;
-                clearTimeout(exit); exit = 0;
                 can = 1;
                 setTimeout(runInterval, 500);
             });
             runInterval();
+
+            //s.netProcs.parent request every 30 seconds
             return;
         }
     }
 
-    if (!s.u) {
-        s.u = 1;
+    if (!s.server) {
+        s.server = 1;
+
         s.stup = async up => {
-            if (!s.intervalIteration && !execNodeId && up.m === '/k' && up.k === 'js' && up.v) {
+            if (main && up.m === '/k' && up.k === 'js' && up.v) {
                 await s.fs.writeFile(`scripts/${up.nodeId}.js`, up.v);
             }
             await (await f('03454982-4657-44d0-a21a-bb034392d3a6'))(up, s.updateIds, s.netNodes, s.netProcs, f, s.triggerDump);
         }
-        s.u = await f('4b60621c-e75a-444a-a36e-f22e7183fc97');
-        await s.u({httpHandler: s.httpHandler, port, selfProcess: s.p, stup: s.stup, st: s.st});
+        s.server = (await import('node:http')).createServer(async (rq, rs) => {
+            (await f('4b60621c-e75a-444a-a36e-f22e7183fc97'))({rq, rs, httpHandler: s.httpHandler, process: s.p, stup: s.stup, st: s.st});
+        });
+        s.server.listen(port, () => console.log(`httpServer start port: ${port}`));
+        //s.u = new (await f('4b60621c-e75a-444a-a36e-f22e7183fc97'));
+        //await s.u.init({httpHandler: s.httpHandler, process: s.p, stup: s.stup, st: s.st});
+        //await s.u.on(port);
     }
-    if (execNodeId) { console.log(`execNodeId: ${execNodeId}`); await f(execNodeId); return; }
     if (!s.intervalIteration) return;
+    //if (procNodeId) { console.log(`procNodeId: ${procNodeId}`); await f(procNodeId); return; }
 
-    await (await f('033392db-784a-4982-b98b-d6b76741693b'))(selfId, port);
+    //await (await f('033392db-784a-4982-b98b-d6b76741693b'))(selfId, port); //todo insert this to netNodesLogic
+
     //const netNodesLogic = await f('f877c6d7-e52a-48fb-b6f7-cf53c9181cc1');
     //console.log(netNodesLogic);
-})();
+    //console.log(new Date);
+}
+
+globalThis.main();
