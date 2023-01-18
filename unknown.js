@@ -214,17 +214,15 @@ globalThis.main = async() => {
             if (m[rq.mp]) { await m[rq.mp](); return; }
             rs.s('page not found');
         }
-
         const runIntervalProc = async () => {
-            const procLogger = new s.Logger('mp: ');
-            procLogger.onMessage(m => s.logMsgHandler(m));
+            const procLogger = (new s.Logger('mp: ')).onMessage(m => s.logMsgHandler(m));
             const os = new s.OS(procLogger);
             os.run(`node ${selfId} --port=${port + 1} --intervalProc=1`, false, false, null, (code) => {
                 s.log.error('intervalProc closed......');
                 setTimeout(runIntervalProc, 2000);
             });
         }
-        //runIntervalProc();
+        runIntervalProc();
 
     } else {
         if (!netNodeId && !s.netProcs.parent) s.netProcs.parent = new s.httpClient(parentUrl);
@@ -248,8 +246,6 @@ globalThis.main = async() => {
                 setTimeout(runInterval, 500);
             });
             runInterval();
-
-            //s.netProcs.parent request every 30 seconds
             return;
         }
     }
@@ -280,5 +276,4 @@ globalThis.main = async() => {
     //console.log(netNodesLogic);
     //console.log(new Date);
 }
-
 globalThis.main();
