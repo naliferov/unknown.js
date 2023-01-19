@@ -76,6 +76,7 @@ globalThis.main = async() => {
     const parentUrl = `http://127.0.0.1:${port - 1}`;
     const childUrl = `http://127.0.0.1:${port + 1}`;
 
+    s.intervalChildProcess ??= null;
     s.netNodes ??= {};
     s.netProcs ??= {};
     s.updateIds ??= {};
@@ -114,6 +115,9 @@ globalThis.main = async() => {
             if (cmd === 'servOff') {
                 s.server.close(() => console.log('httpServer stop'));
                 s.server.closeAllConnections();
+            }
+            if (cmd === 'stop') {
+                if (s.intervalChildProcess) s.intervalChildProcess.kill();
             }
         });
 
@@ -217,7 +221,9 @@ globalThis.main = async() => {
         const runIntervalProc = async () => {
             const procLogger = (new s.Logger('mp: ')).onMessage(m => s.logMsgHandler(m));
             const os = new s.OS(procLogger);
-            os.run(`node ${selfId} --port=${port + 1} --intervalProc=1`, false, false, null, (code) => {
+            os.run(`node ${selfId} --port=${port + 1} --intervalProc=1`, false, false, (proc) => {
+
+            }, (code) => {
                 s.log.error('intervalProc closed......');
                 setTimeout(runIntervalProc, 2000);
             });
@@ -268,6 +274,8 @@ globalThis.main = async() => {
         //await s.u.on(port);
     }
     if (!s.intervalIteration) return;
+
+    //console.log(Object.keys(s.st['dac0330a-1e70-4fd7-8f94-aa4fb15e504e']));
     //if (procNodeId) { console.log(`procNodeId: ${procNodeId}`); await f(procNodeId); return; }
 
     //console.trace();
