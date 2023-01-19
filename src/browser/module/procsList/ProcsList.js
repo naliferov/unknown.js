@@ -1,7 +1,5 @@
-import {keyBy} from "../../../F.js";
 import V from "../../../type/V.js";
 import Btn from "../../../type/Btn.js";
-import HttpClient from "../../../HttpClient.js";
 
 export default class ProcsList {
 
@@ -11,7 +9,7 @@ export default class ProcsList {
     }
 
     async show() {
-        const http = new HttpClient;
+        //const http = new HttpClient;
 
         let procsByGroupId = {}; //groupId is the same as nodeId
         let procs = (await http.get('/proc/list')).data;

@@ -42,7 +42,7 @@ globalThis.main = async() => {
         try {
             if (!n.__js__) n.__js__ = eval(n.js);
             return n.__js__();
-        } catch (e) { console.log(node.js); console.error(e); }
+        } catch (e) { console.log(n.id); console.error(e); }
     };
     g = id => {
         let node = s.st[id]; if (!node) return;
@@ -269,6 +269,9 @@ globalThis.main = async() => {
     }
     if (!s.intervalIteration) return;
     //if (procNodeId) { console.log(`procNodeId: ${procNodeId}`); await f(procNodeId); return; }
+
+    //console.trace();
+    //console.log(s.st['46bcbce2-8af6-4f67-91b0-2afab3584d33']);
 
     //await (await f('033392db-784a-4982-b98b-d6b76741693b'))(selfId, port); //todo insert this to netNodesLogic
 

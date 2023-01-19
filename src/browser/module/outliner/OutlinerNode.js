@@ -1,8 +1,6 @@
-import {uuid} from "../../../F.js";
-
 export default class OutlinerNode {
 
-    constructor(node, isRoot) {
+    constructor(node, isRoot, uuid) {
         this.node = node;
 
         this.domId = uuid();

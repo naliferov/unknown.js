@@ -1,5 +1,4 @@
 import V from "../../../type/V.js";
-import HttpClient from "../../../HttpClient.js";
 
 export default class SignPage {
 
