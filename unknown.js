@@ -37,6 +37,7 @@ globalThis.main = async() => {
         }, 3000);
         return;
     }
+
     f = async id => {
         const n = s.st[id]; if (!n) { console.error(`node not found by id [${id}]`); return; }
         try {
@@ -76,11 +77,11 @@ globalThis.main = async() => {
     const parentUrl = `http://127.0.0.1:${port - 1}`;
     const childUrl = `http://127.0.0.1:${port + 1}`;
 
+    s.httpHandler ??= {};
     s.intervalChildProcess ??= null;
     s.netNodes ??= {};
     s.netProcs ??= {};
     s.updateIds ??= {};
-    s.httpHandler ??= {};
     s.eventSource ??= {};
     s.once ??= {};
     //const once = id => s.once[id] ? 0 : s.once[id] = 1;
@@ -116,9 +117,7 @@ globalThis.main = async() => {
                 s.server.close(() => console.log('httpServer stop'));
                 s.server.closeAllConnections();
             }
-            if (cmd === 'stop') {
-                if (s.intervalChildProcess) s.intervalChildProcess.kill();
-            }
+            if (cmd === 'stop' && s.intervalChildProcess) s.intervalChildProcess.kill();
         });
 
         let saving;
@@ -222,7 +221,7 @@ globalThis.main = async() => {
             const procLogger = (new s.Logger('mp: ')).onMessage(m => s.logMsgHandler(m));
             const os = new s.OS(procLogger);
             os.run(`node ${selfId} --port=${port + 1} --intervalProc=1`, false, false, (proc) => {
-
+                s.intervalChildProcess = proc;
             }, (code) => {
                 s.log.error('intervalProc closed......');
                 setTimeout(runIntervalProc, 2000);
