@@ -73,7 +73,7 @@ globalThis.main = async() => {
         return args;
     })(s.p.argv);
     const selfId = s.p.argv[1].split('/').at(-1);
-    const port = parseInt(s.p.cliArgs.port ?? '8080', 10); if (!port) { console.log('cliArgs.port is not defined'); return; }
+    const port = parseInt(s.p.cliArgs.port ?? '8080', 10); if (port === undefined) { console.log('cliArgs.port is not defined'); return; }
     const parentUrl = `http://127.0.0.1:${port - 1}`;
     const childUrl = `http://127.0.0.1:${port + 1}`;
 
@@ -87,10 +87,9 @@ globalThis.main = async() => {
     //const once = id => s.once[id] ? 0 : s.once[id] = 1;
     s.connectedRS = null;
 
-    const {intervalProc, netNodeId, procNodeId} = s.p.cliArgs;
+    const {netNodeId, DE, procManager, procNodeId} = s.p.cliArgs;
 
-    const main = netNodeId === 'main';
-    if (main) {
+    if (DE) {
         s.st = await s.pA('import("node:fs")', 'r.promises', 'r.readFile("./state/nodes.json")', 'JSON.parse(r)');
     } else {
         s.st = await (await fetch(`${parentUrl}/st`)).json();
@@ -104,7 +103,7 @@ globalThis.main = async() => {
     s.httpClient = await f('94a91287-7149-4bbd-9fef-1f1d68f65d70');
     s.EventSource = (await import('eventsource')).default;
 
-    if (main) {
+    if (DE) {
         s.p.on('unhandledRejection', e => s.log.error(`unhandledRejection:`, e.stack));
         s.netProcs.child = new s.httpClient(childUrl);
         s.p.stdin.on('readable', () => {
@@ -112,7 +111,7 @@ globalThis.main = async() => {
             let cmd = '';
             while (null !== (ch = s.p.stdin.read())) cmd += ch.toString();
             cmd = cmd.trim();
-            if (cmd === 'servOn') s.server.listen(port, () => console.log(`httpServer start port: ${port}`));
+            if (cmd === 'servOn') s.netIO.listen(port, () => console.log(`httpServer start port: ${port}`));
             if (cmd === 'servOff') {
                 s.server.close(() => console.log('httpServer stop'));
                 s.server.closeAllConnections();
@@ -217,21 +216,21 @@ globalThis.main = async() => {
             if (m[rq.mp]) { await m[rq.mp](); return; }
             rs.s('page not found');
         }
-        const runIntervalProc = async () => {
+        const runProcManager = async () => {
             const procLogger = (new s.Logger('mp: ')).onMessage(m => s.logMsgHandler(m));
             const os = new s.OS(procLogger);
-            os.run(`node ${selfId} --port=${port + 1} --intervalProc=1`, false, false, (proc) => {
+            os.run(`node ${selfId} --port=${port + 1} --netNodeId=${netNodeId} --procManager=1`, false, false, proc => {
                 s.intervalChildProcess = proc;
             }, (code) => {
-                s.log.error('intervalProc closed......');
-                setTimeout(runIntervalProc, 2000);
+                s.log.error('procManager closed......');
+                setTimeout(runProcManager, 2000);
             });
         }
-        runIntervalProc();
+        runProcManager();
 
     } else {
-        if (!netNodeId && !s.netProcs.parent) s.netProcs.parent = new s.httpClient(parentUrl);
-        if (intervalProc && !s.intervalIteration) {
+        if (!s.netProcs.parent) s.netProcs.parent = new s.httpClient(parentUrl);
+        if (procManager && !s.intervalIteration) {
             s.intervalIteration = 1;
             let can = 1, i;
 
@@ -259,31 +258,21 @@ globalThis.main = async() => {
         s.server = 1;
 
         s.stup = async up => {
-            if (main && up.m === '/k' && up.k === 'js' && up.v) {
+            if (DE && up.m === '/k' && up.k === 'js' && up.v) {
                 await s.fs.writeFile(`scripts/${up.nodeId}.js`, up.v);
             }
             await (await f('03454982-4657-44d0-a21a-bb034392d3a6'))(up, s.updateIds, s.netNodes, s.netProcs, f, s.triggerDump);
         }
         s.server = (await import('node:http')).createServer(async (rq, rs) => {
-            (await f('4b60621c-e75a-444a-a36e-f22e7183fc97'))({rq, rs, httpHandler: s.httpHandler, process: s.p, stup: s.stup, st: s.st});
+            (await f('4b60621c-e75a-444a-a36e-f22e7183fc97'))({rq, rs, httpHandler: s.httpHandler, stup: s.stup, st: s.st});
         });
         s.server.listen(port, () => console.log(`httpServer start port: ${port}`));
-        //s.u = new (await f('4b60621c-e75a-444a-a36e-f22e7183fc97'));
-        //await s.u.init({httpHandler: s.httpHandler, process: s.p, stup: s.stup, st: s.st});
-        //await s.u.on(port);
     }
+
     if (!s.intervalIteration) return;
+    if (procNodeId) { console.log(`procNodeId: ${procNodeId}`); await f(procNodeId); return; }
 
-    //console.log(Object.keys(s.st['dac0330a-1e70-4fd7-8f94-aa4fb15e504e']));
-    //if (procNodeId) { console.log(`procNodeId: ${procNodeId}`); await f(procNodeId); return; }
-
-    //console.trace();
-    //console.log(s.st['46bcbce2-8af6-4f67-91b0-2afab3584d33']);
-
-    //await (await f('033392db-784a-4982-b98b-d6b76741693b'))(selfId, port); //todo insert this to netNodesLogic
-
-    //const netNodesLogic = await f('f877c6d7-e52a-48fb-b6f7-cf53c9181cc1');
-    //console.log(netNodesLogic);
-    //console.log(new Date);
+    const netNodesLogic = await f('f877c6d7-e52a-48fb-b6f7-cf53c9181cc1');
+    await netNodesLogic(netNodeId);
 }
 globalThis.main();
