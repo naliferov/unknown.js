@@ -7,37 +7,11 @@ globalThis.main = async() => {
         for (let i = 0; i < args.length; i++) r = await eval(`async () => await ${args[i]}`) ();
         return r;
     }
-
     if (typeof window !== 'undefined') {
         f = async id => s.pA(`fetch('/node?id=${id}')`, 'r.text()', 'eval(r)()');
-
-        const baseUrl = document.location.protocol + '//' + document.location.host;
-        navigator.serviceWorker.register('/sw').then(r => console.log('swRegistered')).catch(err => console.log('swNotRegistered', err))
-        require.config({ paths: { 'vs': baseUrl + '/node_modules/monaco-editor/min/vs' }});
-        window.MonacoEnvironment = {
-            getWorkerUrl: (workerId, label) => {
-                return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-                    self.MonacoEnvironment = { baseUrl: '${baseUrl}/node_modules/monaco-editor/min/' };
-                    importScripts('${baseUrl}/node_modules/monaco-editor/min/vs/base/worker/workerMain.js');`
-                )}`;
-            }
-        };
-
         (new (await f('d75b3ec3-7f79-4749-b393-757c1836a03e'))).run();
         return;
     }
-    if (typeof chrome !== 'undefined') {
-        setInterval(() => {
-            chrome.tabs.query({active: true}, t => {
-                t.forEach(({id, url}) => {
-                    url.includes('//www.youtube') || url.includes('//www.facebook') ? chrome.tabs.remove(id) : 0;
-                });
-            });
-            console.log(new Date);
-        }, 3000);
-        return;
-    }
-
     f = async id => {
         const n = s.st[id]; if (!n) { console.error(`node not found by id [${id}]`); return; }
         try {
@@ -84,7 +58,7 @@ globalThis.main = async() => {
     s.updateIds ??= {};
     s.eventSource ??= {};
     s.once ??= {};
-    //const once = id => s.once[id] ? 0 : s.once[id] = 1;
+    const once = id => s.once[id] ? 0 : s.once[id] = 1;
     s.connectedRS = null;
 
     const {netNodeId, DE, procManager, procNodeId} = s.p.cliArgs;
@@ -131,6 +105,7 @@ globalThis.main = async() => {
         const watchScripts = async () => {
             const watch = await s.fs.watch('scripts');
             for await (const e of watch) {
+
                 if (e.eventType !== 'change') continue;
                 const nodeId = e.filename.slice(0, -3);
                 const node = s.st[nodeId];

@@ -1,2 +1,4 @@
 .idea
 node_modules
+node-v*-linux-x64
+node*.tar.xz
