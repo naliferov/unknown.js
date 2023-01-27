@@ -2,13 +2,14 @@ globalThis.s ??= {};
 globalThis.main = async() => {
     let f, g;
 
-    s.pA = async (...args) => {
+    s.pa = async (...args) => {
         let r;
-        for (let i = 0; i < args.length; i++) r = await eval(`async () => await ${args[i]}`) ();
+        for (let i = 0; i < args.length; i++) r = await eval(`async () => ${args[i]}`) ();
         return r;
     }
+
     if (typeof window !== 'undefined') {
-        f = async id => s.pA(`fetch('/node?id=${id}')`, 'r.text()', 'eval(r)()');
+        f = async id => s.pa(`fetch('/node?id=${id}')`, 'r.text()', 'eval(r)()');
         (new (await f('d75b3ec3-7f79-4749-b393-757c1836a03e'))).run();
         return;
     }
@@ -64,7 +65,7 @@ globalThis.main = async() => {
     const {netNodeId, DE, procManager, procNodeId} = s.p.cliArgs;
 
     if (DE) {
-        s.st = await s.pA('import("node:fs")', 'r.promises', 'r.readFile("./state/nodes.json")', 'JSON.parse(r)');
+        s.st = await s.pa('import("node:fs")', 'r.promises', 'r.readFile("./state/nodes.json")', 'JSON.parse(r)');
     } else {
         s.st = await (await fetch(`${parentUrl}/st`)).json();
     }
@@ -122,7 +123,7 @@ globalThis.main = async() => {
                 }
             }
         }
-        watchScripts();
+        if (netNodeId === 'main') watchScripts();
         s.logMsgHandler = m => {
             if (!s.connectedRS) return;
 
@@ -170,7 +171,6 @@ globalThis.main = async() => {
                 'GET:/': async () => rs.s(await f('ed85ee2d-0f01-4707-8541-b7f46e79192e'), 'text/html'),
                 'GET:/unknown': async () => rs.s(await s.fs.readFile(selfId)),
                 'GET:/sw': async () => rs.s(await f('ebac14bb-e6b1-4f6c-95ea-017a44a0cc28'), 'text/javascript'),
-                'GET:/pwaManifest': async () => rs.s(await f('fb362554-78e4-44e3-8beb-bf603aa6ef3f'), 'application/json'),
                 'GET:/node': () => {
                     if (!rq.query.id) { rs.s('id is empty'); return; }
                     const node = g(rq.query.id);
@@ -233,7 +233,7 @@ globalThis.main = async() => {
         s.server = 1;
 
         s.stup = async up => {
-            if (DE && up.m === '/k' && up.k === 'js' && up.v) {
+            if (DE && netNodeId === 'main' && up.m === '/k' && up.k === 'js' && up.v) {
                 await s.fs.writeFile(`scripts/${up.nodeId}.js`, up.v);
             }
             await (await f('03454982-4657-44d0-a21a-bb034392d3a6'))(up, s.updateIds, s.netNodes, s.netProcs, f, s.triggerDump);
