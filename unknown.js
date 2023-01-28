@@ -70,6 +70,7 @@ globalThis.main = async() => {
         s.st = await (await fetch(`${parentUrl}/st`)).json();
     }
 
+    s.isMainNode = netNodeId === 'main';
     s.Logger = await f('20cb8896-bdf4-4538-a471-79fb684ffb86');
     s.log = new s.Logger;
     s.fs = new (await f('9f0e6908-4f44-49d1-8c8e-10e1b0128858'))(s.log);
@@ -123,7 +124,7 @@ globalThis.main = async() => {
                 }
             }
         }
-        if (netNodeId === 'main') watchScripts();
+        if (s.isMainNode) watchScripts();
         s.logMsgHandler = m => {
             if (!s.connectedRS) return;
 
@@ -185,7 +186,7 @@ globalThis.main = async() => {
                     rq.on('close', () => { s.connectedRS = 0; s.log.info('SSE closed'); });
                 },
             }
-            if (netNodeId === 'main') m['POST:/unknown'] = async () => await s.fs.writeFile(selfId, (await parseRqBody(rq)).js);
+            if (s.isMainNode) m['POST:/unknown'] = async () => await s.fs.writeFile(selfId, (await parseRqBody(rq)).js);
 
             if (await resolveStatic(rq, rs)) return;
             if (m[rq.mp]) { await m[rq.mp](); return; }
@@ -230,16 +231,16 @@ globalThis.main = async() => {
     }
 
     if (!s.server) {
-        s.server = 1;
-
         s.stup = async up => {
-            if (DE && netNodeId === 'main' && up.m === '/k' && up.k === 'js' && up.v) {
+            if (DE && s.isMainNode && up.m === '/k' && up.k === 'js' && up.v) {
                 await s.fs.writeFile(`scripts/${up.nodeId}.js`, up.v);
             }
             await (await f('03454982-4657-44d0-a21a-bb034392d3a6'))(up, s.updateIds, s.netNodes, s.netProcs, f, s.triggerDump);
         }
         s.server = (await import('node:http')).createServer(async (rq, rs) => {
-            (await f('4b60621c-e75a-444a-a36e-f22e7183fc97'))({rq, rs, httpHandler: s.httpHandler, stup: s.stup, st: s.st});
+            (await f('4b60621c-e75a-444a-a36e-f22e7183fc97'))({
+                rq, rs, httpHandler: s.httpHandler, stup: s.stup, st: s.st, updatePermit: s.isMainNode
+            });
         });
         s.server.listen(port, () => console.log(`httpServer start port: ${port}`));
     }
