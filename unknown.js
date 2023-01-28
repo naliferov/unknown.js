@@ -8,18 +8,24 @@ globalThis.main = async() => {
         return r;
     }
 
-    if (typeof window !== 'undefined') {
-        f = async id => s.pa(`fetch('/node?id=${id}')`, 'r.text()', 'eval(r)()');
-        (new (await f('d75b3ec3-7f79-4749-b393-757c1836a03e'))).run();
-        return;
-    }
-    f = async id => {
+    const execJS = id => {
         const n = s.st[id]; if (!n) { console.error(`node not found by id [${id}]`); return; }
         try {
             if (!n.__js__) n.__js__ = eval(n.js);
             return n.__js__();
         } catch (e) { console.log(n.id); console.error(e); }
-    };
+    }
+
+    if (typeof window !== 'undefined') {
+        f = async (id, forceRequest) => {
+            if (forceRequest) return s.pa(`fetch('/node?id=${id}')`, 'r.text()', 'eval(r)()');
+            return execJS(id);
+        }
+        s.st = await (await fetch('/st')).json();
+        (new (await f('d75b3ec3-7f79-4749-b393-757c1836a03e'))).run();
+        return;
+    }
+    f = async id => execJS(id);
     g = id => {
         let node = s.st[id]; if (!node) return;
         return new Proxy(node, {
