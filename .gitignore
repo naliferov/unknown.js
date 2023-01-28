@@ -1,4 +1,5 @@
 .idea
+node
 node_modules
 node_modules.zip
 node-v*-linux-x64

@@ -162,7 +162,7 @@ globalThis.main = async() => {
                 rs.end(file);
                 return true;
             } catch (e) {
-                log.info(e.toString(), {path: e.path, syscall: e.syscall});
+                s.log.info(e.toString(), {path: e.path, syscall: e.syscall});
                 return false;
             }
         }
@@ -192,12 +192,12 @@ globalThis.main = async() => {
             rs.s('page not found');
         }
         const runProcManager = async () => {
-            const procLogger = (new s.Logger('mp: ')).onMessage(m => s.logMsgHandler(m));
+            const procLogger = (new s.Logger('pm: ')).onMessage(m => s.logMsgHandler(m));
             const os = new s.OS(procLogger);
-            os.run(`node ${selfId} --port=${port + 1} --netNodeId=${netNodeId} --procManager=1`, false, false, proc => {
+            os.run(`./node ${selfId} --port=${port + 1} --netNodeId=${netNodeId} --procManager=1`, false, false, proc => {
                 s.intervalChildProcess = proc;
-            }, (code) => {
-                s.log.error('procManager closed......');
+            }, code => {
+                s.log.error('procManager closed...... with code: ' + code);
                 setTimeout(runProcManager, 2000);
             });
         }
