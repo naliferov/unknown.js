@@ -64,9 +64,9 @@ globalThis.main = async() => {
     s.netProcs ??= {};
     s.updateIds ??= {};
     s.eventSource ??= {};
-    s.once ??= {};
-    const once = id => s.once[id] ? 0 : s.once[id] = 1;
     s.connectedRS = null;
+    s.onceDB ??= {};
+    s.once = id => s.once[id] ? 0 : s.once[id] = 1;
 
     const {netNodeId, DE, procManager, procNodeId} = s.p.cliArgs;
 
