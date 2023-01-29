@@ -1,14 +1,13 @@
 globalThis.s ??= {};
 globalThis.main = async() => {
-    let f, g;
+    let f
 
     s.pa = async (...args) => {
         let r;
         for (let i = 0; i < args.length; i++) r = await eval(`async () => ${args[i]}`) ();
         return r;
     }
-
-    const execJS = id => {
+    s.execJS = id => {
         const n = s.st[id]; if (!n) { console.error(`node not found by id [${id}]`); return; }
         try {
             if (!n.__js__) n.__js__ = eval(n.js);
@@ -19,25 +18,13 @@ globalThis.main = async() => {
     if (typeof window !== 'undefined') {
         f = async (id, forceRequest) => {
             if (forceRequest) return s.pa(`fetch('/node?id=${id}')`, 'r.text()', 'eval(r)()');
-            return execJS(id);
+            return s.execJS(id);
         }
         s.st = await (await fetch('/st')).json();
         (new (await f('d75b3ec3-7f79-4749-b393-757c1836a03e'))).run();
         return;
     }
-    f = async id => execJS(id);
-    g = id => {
-        let node = s.st[id]; if (!node) return;
-        return new Proxy(node, {
-            get(t, k) { return t[k] },
-            set(t, k, v) {
-                t[k] = v;
-                s.stup({m: '/k', nodeId: id, k, v});
-                if (v === undefined || v === null) delete t[k];
-                return true;
-            }
-        });
-    }
+    f = async id => s.execJS(id);
 
     s.p = (await import('node:process')).default;
     s.p.cliArgs = (cliArgs => {
@@ -58,7 +45,8 @@ globalThis.main = async() => {
     const parentUrl = `http://127.0.0.1:${port - 1}`;
     const childUrl = `http://127.0.0.1:${port + 1}`;
 
-    s.httpHandler ??= {};
+    s.slicers ??= {};
+    s.httpSlicer ??= {};
     s.intervalChildProcess ??= null;
     s.netNodes ??= {};
     s.netProcs ??= {};
@@ -70,11 +58,8 @@ globalThis.main = async() => {
 
     const {netNodeId, DE, procManager, procNodeId} = s.p.cliArgs;
 
-    if (DE) {
-        s.st = await s.pa('import("node:fs")', 'r.promises', 'r.readFile("./state/nodes.json")', 'JSON.parse(r)');
-    } else {
-        s.st = await (await fetch(`${parentUrl}/st`)).json();
-    }
+    if (DE) s.st = await s.pa('import("node:fs")', 'r.promises', 'r.readFile("./state/nodes.json")', 'JSON.parse(r)');
+    else s.st = await (await fetch(`${parentUrl}/st`)).json();
 
     s.isMainNode = netNodeId === 'main';
     s.Logger = await f('20cb8896-bdf4-4538-a471-79fb684ffb86');
@@ -88,18 +73,6 @@ globalThis.main = async() => {
     if (DE) {
         s.p.on('unhandledRejection', e => s.log.error(`unhandledRejection:`, e.stack));
         s.netProcs.child = new s.httpClient(childUrl);
-        s.p.stdin.on('readable', () => {
-            let ch;
-            let cmd = '';
-            while (null !== (ch = s.p.stdin.read())) cmd += ch.toString();
-            cmd = cmd.trim();
-            if (cmd === 'servOn') s.netIO.listen(port, () => console.log(`httpServer start port: ${port}`));
-            if (cmd === 'servOff') {
-                s.server.close(() => console.log('httpServer stop'));
-                s.server.closeAllConnections();
-            }
-            if (cmd === 'stop' && s.intervalChildProcess) s.intervalChildProcess.kill();
-        });
 
         let saving;
         s.triggerDump = () => {
@@ -173,7 +146,7 @@ globalThis.main = async() => {
                 return false;
             }
         }
-        s.httpHandler.x = async (rq, rs) => {
+        s.httpSlicer.x = async (rq, rs) => {
             const m = {
                 'GET:/': async () => rs.s(await f('ed85ee2d-0f01-4707-8541-b7f46e79192e'), 'text/html'),
                 'GET:/unknown': async () => rs.s(await s.fs.readFile(selfId)),
@@ -245,7 +218,7 @@ globalThis.main = async() => {
         }
         s.server = (await import('node:http')).createServer(async (rq, rs) => {
             (await f('4b60621c-e75a-444a-a36e-f22e7183fc97'))({
-                rq, rs, httpHandler: s.httpHandler, stup: s.stup, st: s.st, updatePermit: s.isMainNode
+                rq, rs, httpHandler: s.httpSlicer, stup: s.stup, st: s.st, updatePermit: s.isMainNode
             });
         });
         s.server.listen(port, () => console.log(`httpServer start port: ${port}`));
