@@ -1,7 +1,6 @@
 globalThis.s ??= {};
-globalThis.main = async() => {
+(async() => {
     let f
-
     s.pa = async (...args) => {
         let r;
         for (let i = 0; i < args.length; i++) r = await eval(`async () => ${args[i]}`) ();
@@ -181,7 +180,7 @@ globalThis.main = async() => {
                 setTimeout(runProcManager, 2000);
             });
         }
-        runProcManager();
+        //runProcManager();
 
     } else {
         if (!s.netProcs.parent) s.netProcs.parent = new s.httpClient(parentUrl);
@@ -229,5 +228,4 @@ globalThis.main = async() => {
 
     const netNodesLogic = await f('f877c6d7-e52a-48fb-b6f7-cf53c9181cc1');
     await netNodesLogic(netNodeId);
-}
-globalThis.main();
+})();
